@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Cursor
+Comment=AI-first code editor
+Exec=/home/ubuntu/Applications/cursor.AppImage
+Icon=/home/ubuntu/Applications/cursor.AppImage
+Terminal=false
+StartupWMClass=cursor
+Categories=Development;IDE;
