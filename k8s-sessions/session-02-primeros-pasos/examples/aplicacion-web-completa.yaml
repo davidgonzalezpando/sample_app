@@ -1,0 +1,139 @@
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: frontend
+    tier: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        tier: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        env:
+        - name: BACKEND_URL
+          value: "http://backend-service:8080"
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  labels:
+    app: backend
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        tier: backend
+    spec:
+      containers:
+      - name: backend
+        image: node:16-alpine
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        command: ["node"]
+        args: ["-e", "const http = require('http'); const server = http.createServer((req, res) => { res.writeHead(200, {'Content-Type': 'text/plain'}); res.end('Backend funcionando!\\n'); }); server.listen(8080, () => console.log('Backend corriendo en puerto 8080'));"]
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  labels:
+    app: frontend
+    tier: frontend
+spec:
+  selector:
+    app: frontend
+    tier: frontend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  labels:
+    app: backend
+    tier: backend
+spec:
+  selector:
+    app: backend
+    tier: backend
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+# Ingress (opcional - requiere ingress controller)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 8080
